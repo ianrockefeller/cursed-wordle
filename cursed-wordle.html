@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cursed Wordle</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 2rem 1.5rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .daily-tag {
+      display: inline-block;
+      background: #f0f0f0;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #999;
+      font-weight: 500;
+    }
+
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 2rem;
+    }
+
+    .tile {
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 2px solid #e0e0e0;
+      background: #f9f9f9;
+      color: #1a1a1a;
+      transition: all 0.2s;
+    }
+
+    .tile.correct {
+      background: #10b981;
+      color: white;
+      border-color: #059669;
+    }
+
+    .tile.present {
+      background: #f59e0b;
+      color: white;
+      border-color: #d97706;
+    }
+
+    .tile.absent {
+      background: #e5e7eb;
+      color: #9ca3af;
+      border-color: #d1d5db;
+    }
+
+    .info {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 16px;
+      color: #666;
+      min-height: 24px;
+      font-weight: 500;
+    }
+
+    .info.error {
+      color: #dc2626;
+    }
+
+    .info.success {
+      color: #10b981;
+    }
+
+    .keyboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
+      gap: 6px;
+      margin-bottom: 2rem;
+    }
+
+    .key {
+      padding: 10px 4px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1.5px solid #e0e0e0;
+      background: #f9f9f9;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+    }
+
+    .key:hover:not(:disabled) {
+      background: #f0f0f0;
+      border-color: #d0d0d0;
+    }
+
+    .key:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    .key:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .key.correct {
+      background: #10b981;
+      color: white;
+      border-color: #059669;
+    }
+
+    .key.present {
+      background: #f59e0b;
+      color: white;
+      border-color: #d97706;
+    }
+
+    .key.absent {
+      background: #d1d5db;
+      color: #6b7280;
+      border-color: #9ca3af;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1.5px solid #e0e0e0;
+      background: white;
+      color: #1a1a1a;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    button:hover {
+      background: #f9f9f9;
+      border-color: #d0d0d0;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: transparent;
+    }
+
+    button.primary:hover {
+      opacity: 0.9;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 1.5rem 1rem;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+
+      .tile {
+        font-size: 18px;
+      }
+
+      .keyboard {
+        grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>cursed wordle</h1>
+      <p>tricky words. overlapping letters. suffering ahead.</p>
+      <span class="daily-tag" id="dateTag"></span>
+    </div>
+
+    <div class="game-board" id="board"></div>
+
+    <div class="info" id="info"></div>
+
+    <div class="keyboard" id="keyboard"></div>
+
+    <div class="actions">
+      <button class="primary" onclick="newGame()">New game</button>
+      <button onclick="revealWord()">Give up</button>
+    </div>
+  </div>
+
+  <script>
+    const WORDS = [
+      'STARE', 'SLATE', 'STERN', 'STONE', 'RAISE', 'ARISE', 'TEARS', 'RATES',
+      'LEAST', 'ROAST', 'TOAST', 'BOAST', 'STEAL', 'STALE', 'STORE', 'STOVE',
+      'NOTES', 'TONES', 'HASTE', 'WASTE', 'TASTE', 'PASTE', 'CRATE', 'GRATE',
+      'TRADE', 'TREAD', 'TREAT', 'GREAT', 'BRAKE', 'STEAK', 'SNARE', 'SHARE',
+      'SHEAR', 'SWEAR', 'SCARE', 'SPARE', 'SPEAR', 'CLEAR', 'SMEAR', 'LATER',
+      'WATER', 'EATER', 'HATER', 'CATER', 'RENTS', 'TENTS', 'DENTS', 'VENTS', 'STENT'
+    ];
+
+    let word = '';
+    let guesses = [];
+    let gameOver = false;
+    let won = false;
+
+    function getDailyWord() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+
+      // Create a simple hash of the date string
+      let hash = 0;
+      for (let i = 0; i < dateString.length; i++) {
+        const char = dateString.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+
+      // Use hash to select a word
+      const index = Math.abs(hash) % WORDS.length;
+      return WORDS[index];
+    }
+
+    function updateDateTag() {
+      const today = new Date();
+      const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+      const dateString = today.toLocaleDateString('en-US', options);
+      document.getElementById('dateTag').textContent = `Daily puzzle • ${dateString}`;
+    }
+
+    function init() {
+      word = getDailyWord();
+      guesses = ['', '', '', '', '', ''];
+      gameOver = false;
+      won = false;
+      updateDateTag();
+      render();
+    }
+
+    function render() {
+      renderBoard();
+      renderKeyboard();
+      renderInfo();
+    }
+
+    function renderBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+      guesses.forEach((guess, gi) => {
+        for (let i = 0; i < 5; i++) {
+          const tile = document.createElement('div');
+          tile.className = 'tile';
+          const char = guess[i] || '';
+          tile.textContent = char;
+
+          if (char) {
+            if (word[i] === char) {
+              tile.classList.add('correct');
+            } else if (word.includes(char)) {
+              tile.classList.add('present');
+            } else {
+              tile.classList.add('absent');
+            }
+          }
+          board.appendChild(tile);
+        }
+      });
+    }
+
+    function renderKeyboard() {
+      const keyboard = document.getElementById('keyboard');
+      keyboard.innerHTML = '';
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+        const key = document.createElement('button');
+        key.textContent = letter;
+        key.className = 'key';
+        key.type = 'button';
+
+        let hasLetterState = false;
+        for (const guess of guesses) {
+          for (let i = 0; i < guess.length; i++) {
+            if (guess[i] === letter) {
+              if (word[i] === letter) {
+                key.classList.add('correct');
+              } else if (word.includes(letter)) {
+                key.classList.add('present');
+              } else {
+                key.classList.add('absent');
+              }
+              hasLetterState = true;
+              break;
+            }
+          }
+          if (hasLetterState) break;
+        }
+
+        key.onclick = () => {
+          if (!gameOver) {
+            const current = guesses.findIndex(g => g.length < 5);
+            if (current >= 0 && guesses[current].length < 5) {
+              guesses[current] += letter;
+              checkGuess();
+              render();
+            }
+          }
+        };
+        keyboard.appendChild(key);
+      });
+    }
+
+    function renderInfo() {
+      const info = document.getElementById('info');
+      if (won) {
+        info.textContent = `You got it! The word was ${word}`;
+        info.className = 'info success';
+      } else if (gameOver) {
+        info.textContent = `Game over. The word was ${word}`;
+        info.className = 'info error';
+      } else {
+        const current = guesses.findIndex(g => g.length < 5);
+        if (current >= 0) {
+          info.textContent = `Guess ${current + 1} of 6`;
+          info.className = 'info';
+        }
+      }
+    }
+
+    function checkGuess() {
+      const current = guesses.findIndex(g => g.length < 5);
+      if (current >= 0 && guesses[current].length === 5) {
+        if (guesses[current] === word) {
+          won = true;
+          gameOver = true;
+        } else if (current === 5) {
+          gameOver = true;
+        }
+      }
+    }
+
+    function newGame() {
+      init();
+    }
+
+    function revealWord() {
+      gameOver = true;
+      renderInfo();
+      renderBoard();
+    }
+
+    // Add keyboard support
+    document.addEventListener('keydown', (e) => {
+      if (gameOver) return;
+
+      if (/^[a-z]$/i.test(e.key)) {
+        const letter = e.key.toUpperCase();
+        const current = guesses.findIndex(g => g.length < 5);
+        if (current >= 0 && guesses[current].length < 5) {
+          guesses[current] += letter;
+          checkGuess();
+          render();
+        }
+      } else if (e.key === 'Backspace') {
+        const current = guesses.findIndex(g => g.length < 5);
+        if (current >= 0 && guesses[current].length > 0) {
+          guesses[current] = guesses[current].slice(0, -1);
+          render();
+        } else if (current > 0) {
+          guesses[current - 1] = guesses[current - 1].slice(0, -1);
+          render();
+        }
+      } else if (e.key === 'Enter') {
+        const current = guesses.findIndex(g => g.length < 5);
+        if (current >= 0 && guesses[current].length === 5) {
+          checkGuess();
+          render();
+        }
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
